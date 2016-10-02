@@ -1,0 +1,4 @@
+PKG core async cohttp_async
+FLG -short-paths
+B _build/examples
+B _build/src/*
