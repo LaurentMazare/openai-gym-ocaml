@@ -22,9 +22,9 @@ module Query = struct
     | `Assoc assoc_list ->
       begin
         match List.Assoc.find assoc_list "all_envs" with
-        | Some (`Assoc env_ids) ->
-          List.map env_ids ~f:(function
-            | (env_id, `String env) -> Ok (env_id, env)
+        | Some (`Assoc instance_and_env_ids) ->
+          List.map instance_and_env_ids ~f:(function
+            | (instance_id, `String env_id) -> Ok (instance_id, env_id)
             | _ -> cannot_parse body)
           |> Or_error.combine_errors
         | _ -> cannot_parse body
@@ -48,7 +48,33 @@ module Query = struct
     | `Assoc assoc_list ->
       begin
         match List.Assoc.find assoc_list "instance_id" with
-        | Some (`String env_id) -> Ok env_id
+        | Some (`String instance_id) -> Ok instance_id
+        | _ -> cannot_parse body
+      end
+    | _ -> cannot_parse body
+
+  let reset instance_id ~server ~port =
+    let uri = uri ~server ~port ~path:(sprintf "envs/%s/reset" instance_id) in
+    let body =
+      Yojson.Safe.to_string
+        (`Assoc [ "instance_id", `String instance_id ])
+    in
+    let headers = Cohttp.Header.init_with "Content-type" "application/json" in
+    Cohttp_async.Client.post uri
+      ~headers
+      ~body:(`String body)
+    >>= fun (_, body) ->
+    Cohttp_async.Body.to_string body
+    >>| fun body ->
+    match Yojson.Safe.from_string body with
+    | `Assoc assoc_list ->
+      begin
+        match List.Assoc.find assoc_list "observation" with
+        | Some (`List obs) ->
+          List.map obs ~f:(function
+            | `Float obs -> Ok obs
+            | obs -> cannot_parse (Yojson.Safe.to_string obs))
+          |> Or_error.combine_errors
         | _ -> cannot_parse body
       end
     | _ -> cannot_parse body
@@ -56,15 +82,19 @@ end
 
 let run ~server ~port =
   Query.new_env "CartPole-v0" ~server ~port
-  >>= fun env_id ->
-  let env_id = ok_exn env_id in
-  printf "env-id: %s\n%!" env_id;
+  >>= fun instance_id ->
+  let instance_id = ok_exn instance_id in
+  printf "env-id: %s\n%!" instance_id;
   Query.get_env ~server ~port
   >>= fun envs ->
   let envs = ok_exn envs in
-  List.iter envs ~f:(fun (env_id, env) ->
-    printf "%s -> %s\n%!" env_id env);
-  Deferred.never ()
+  List.iter envs ~f:(fun (instance_id, env_id) ->
+    printf "%s -> %s\n%!" instance_id env_id);
+  Query.reset instance_id ~server ~port
+  >>| fun obs ->
+  let obs = ok_exn obs in
+  List.iter obs ~f:(fun obs ->
+    printf "%f\n%!" obs)
 
 let () =
   Command.async_basic
