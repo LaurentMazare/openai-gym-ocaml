@@ -1,6 +1,28 @@
 open Core.Std
 open Async.Std
 
+module Env_id = struct
+  type t =
+    | Cartpole_v0
+
+  let to_string = function
+    | Cartpole_v0 -> "CartPole-v0"
+
+  let of_string = function
+    | "CartPole-v0" -> Ok Cartpole_v0
+    | otherwise -> Or_error.errorf "Unknown env-id %s" otherwise
+end
+
+module Instance_id : sig
+  type t
+  val of_string : string -> t
+  val to_string : t -> string
+end = struct
+  type t = string
+  let of_string = Fn.id
+  let to_string = Fn.id
+end
+
 module Query = struct
   let uri ~server ~port ~path =
     let base_uri =
@@ -24,7 +46,8 @@ module Query = struct
         match List.Assoc.find assoc_list "all_envs" with
         | Some (`Assoc instance_and_env_ids) ->
           List.map instance_and_env_ids ~f:(function
-            | (instance_id, `String env_id) -> Ok (instance_id, env_id)
+            | (instance_id, `String env_id) ->
+              Ok (Instance_id.of_string instance_id, Env_id.of_string env_id)
             | _ -> cannot_parse body)
           |> Or_error.combine_errors
         | _ -> cannot_parse body
@@ -35,7 +58,7 @@ module Query = struct
     let uri = uri ~server ~port ~path:"envs" in
     let body =
       Yojson.Safe.to_string
-        (`Assoc [ "env_id", `String env_id ])
+        (`Assoc [ "env_id", `String (Env_id.to_string env_id) ])
     in
     let headers = Cohttp.Header.init_with "Content-type" "application/json" in
     Cohttp_async.Client.post uri
@@ -48,12 +71,13 @@ module Query = struct
     | `Assoc assoc_list ->
       begin
         match List.Assoc.find assoc_list "instance_id" with
-        | Some (`String instance_id) -> Ok instance_id
+        | Some (`String instance_id) -> Ok (Instance_id.of_string instance_id)
         | _ -> cannot_parse body
       end
     | _ -> cannot_parse body
 
   let reset instance_id ~server ~port =
+    let instance_id = Instance_id.to_string instance_id in
     let uri = uri ~server ~port ~path:(sprintf "envs/%s/reset" instance_id) in
     let body =
       Yojson.Safe.to_string
@@ -81,15 +105,20 @@ module Query = struct
 end
 
 let run ~server ~port =
-  Query.new_env "CartPole-v0" ~server ~port
+  Query.new_env Cartpole_v0 ~server ~port
   >>= fun instance_id ->
   let instance_id = ok_exn instance_id in
-  printf "env-id: %s\n%!" instance_id;
+  printf "env-id: %s\n%!" (Instance_id.to_string instance_id);
   Query.get_env ~server ~port
   >>= fun envs ->
   let envs = ok_exn envs in
   List.iter envs ~f:(fun (instance_id, env_id) ->
-    printf "%s -> %s\n%!" instance_id env_id);
+    let env_id =
+      match env_id with
+      | Ok env_id -> Env_id.to_string env_id
+      | Error err -> Error.to_string_hum err
+    in
+    printf "%s -> %s\n%!" (Instance_id.to_string instance_id) env_id);
   Query.reset instance_id ~server ~port
   >>| fun obs ->
   let obs = ok_exn obs in
