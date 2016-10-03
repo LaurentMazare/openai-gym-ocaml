@@ -31,28 +31,17 @@ module Query = struct
     in
     base_uri
 
-  let cannot_parse body =
-    Or_error.errorf "Cannot parse output: %s" body
-
   let get_env ~server ~port =
     let uri = uri ~server ~port ~path:"envs" in
     Cohttp_async.Client.get uri
     >>= fun (_, body) ->
     Cohttp_async.Body.to_string body
     >>| fun body ->
-    match Yojson.Safe.from_string body with
-    | `Assoc assoc_list ->
-      begin
-        match List.Assoc.find assoc_list "all_envs" with
-        | Some (`Assoc instance_and_env_ids) ->
-          List.map instance_and_env_ids ~f:(function
-            | (instance_id, `String env_id) ->
-              Ok (Instance_id.of_string instance_id, Env_id.of_string env_id)
-            | _ -> cannot_parse body)
-          |> Or_error.combine_errors
-        | _ -> cannot_parse body
-      end
-    | _ -> cannot_parse body
+    let open Or_error.Monad_infix in
+    Json.of_string body
+    >>= Json.find_assoc ~key:"all_envs"
+    >>= Json.extract_assoc ~f:Json.extract_string
+    >>| List.map ~f:(fun (key, value) -> Instance_id.of_string key, Env_id.of_string value)
 
   let new_env env_id ~server ~port =
     let uri = uri ~server ~port ~path:"envs" in
@@ -67,14 +56,11 @@ module Query = struct
     >>= fun (_, body) ->
     Cohttp_async.Body.to_string body
     >>| fun body ->
-    match Yojson.Safe.from_string body with
-    | `Assoc assoc_list ->
-      begin
-        match List.Assoc.find assoc_list "instance_id" with
-        | Some (`String instance_id) -> Ok (Instance_id.of_string instance_id)
-        | _ -> cannot_parse body
-      end
-    | _ -> cannot_parse body
+    let open Or_error.Monad_infix in
+    Json.of_string body
+    >>= Json.find_assoc ~key:"instance_id"
+    >>= Json.extract_string
+    >>| Instance_id.of_string
 
   let reset instance_id ~server ~port =
     let instance_id = Instance_id.to_string instance_id in
@@ -90,18 +76,10 @@ module Query = struct
     >>= fun (_, body) ->
     Cohttp_async.Body.to_string body
     >>| fun body ->
-    match Yojson.Safe.from_string body with
-    | `Assoc assoc_list ->
-      begin
-        match List.Assoc.find assoc_list "observation" with
-        | Some (`List obs) ->
-          List.map obs ~f:(function
-            | `Float obs -> Ok obs
-            | obs -> cannot_parse (Yojson.Safe.to_string obs))
-          |> Or_error.combine_errors
-        | _ -> cannot_parse body
-      end
-    | _ -> cannot_parse body
+    let open Or_error.Monad_infix in
+    Json.of_string body
+    >>= Json.find_assoc ~key:"observation"
+    >>= Json.extract_list ~f:Json.extract_float
 end
 
 let run ~server ~port =
