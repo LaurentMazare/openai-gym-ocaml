@@ -18,13 +18,18 @@ let run ~host ~port =
     in
     printf "%s -> %s\n%!" (Instance_id.to_string instance_id) env_id);
   Query.reset t instance_id
-  >>| fun obs ->
+  >>= fun obs ->
   let obs = ok_exn obs in
   List.iter obs ~f:(fun obs ->
-    printf "%f\n%!" obs)
+    printf "%f\n%!" obs);
+  Query.step t instance_id ~action:1
+  >>= fun step_result ->
+  let step_result = ok_exn step_result in
+  printf "%s\n%!" (Query.Step_result.sexp_of_t step_result |> Sexp.to_string);
+  Deferred.unit
 
 let () =
-  Command.async_basic
+  Command.async
     ~summary:"Simple openai-gym client"
     Command.Spec.(
       empty

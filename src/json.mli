@@ -14,6 +14,8 @@ val extract_string : t -> string Or_error.t
 
 val extract_float : t -> float Or_error.t
 
+val extract_bool : t -> bool Or_error.t
+
 val extract_assoc
   :  t
   -> f:(t -> 'a Or_error.t)

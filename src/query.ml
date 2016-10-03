@@ -67,3 +67,42 @@ let reset t instance_id =
   Json.of_string body
   >>= Json.find_assoc ~key:"observation"
   >>= Json.extract_list ~f:Json.extract_float
+
+module Step_result = struct
+  type t =
+    { observation : float list
+    ; reward : float
+    ; is_done : bool
+    } [@@deriving sexp]
+end
+
+let step t instance_id ~action =
+  let instance_id = Instance_id.to_string instance_id in
+  let uri = uri t ~path:(sprintf "envs/%s/step" instance_id) in
+  let body =
+    Yojson.Safe.to_string
+      (`Assoc
+        [ "instance_id", `String instance_id
+        ; "action", `Int action
+        ])
+  in
+  let headers = Cohttp.Header.init_with "Content-type" "application/json" in
+  Cohttp_async.Client.post uri
+    ~headers
+    ~body:(`String body)
+  >>= fun (_, body) ->
+  Cohttp_async.Body.to_string body
+  >>| fun body ->
+  let open Or_error.Monad_infix in
+  Json.of_string body
+  >>= fun json ->
+  Json.find_assoc json ~key:"observation"
+  >>= Json.extract_list ~f:Json.extract_float
+  >>= fun observation ->
+  Json.find_assoc json ~key:"reward"
+  >>= Json.extract_float
+  >>= fun reward ->
+  Json.find_assoc json ~key:"done"
+  >>= Json.extract_bool
+  >>| fun is_done ->
+  { Step_result.observation; reward; is_done }

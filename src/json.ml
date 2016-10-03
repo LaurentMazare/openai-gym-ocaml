@@ -34,6 +34,10 @@ let extract_float = function
   | `Float f -> Ok f
   | otherwise -> Or_error.errorf "Expected float, got %s" (to_string otherwise)
 
+let extract_bool = function
+  | `Bool b -> Ok b
+  | otherwise -> Or_error.errorf "Expected bool, got %s" (to_string otherwise)
+
 let extract_list json ~f =
   match json with
   | `List l ->
