@@ -33,5 +33,5 @@ end
 val step
   :  t
   -> Instance_id.t
-  -> action:int
+  -> action:Json.t
   -> Step_result.t Or_error.t Deferred.t

@@ -83,7 +83,7 @@ let step t instance_id ~action =
     Yojson.Safe.to_string
       (`Assoc
         [ "instance_id", `String instance_id
-        ; "action", `Int action
+        ; "action", action
         ])
   in
   let headers = Cohttp.Header.init_with "Content-type" "application/json" in

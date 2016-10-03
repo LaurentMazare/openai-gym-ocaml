@@ -1,6 +1,6 @@
 open Core.Std
 
-type t
+type t = Yojson.Safe.json
 
 val of_string : string -> t Or_error.t
 val to_string : t -> string
