@@ -1,5 +1,5 @@
-client.native: .FORCE
-	ocamlbuild examples/client.native
+cartpole.native: .FORCE
+	ocamlbuild examples/cartpole.native
 
 .FORCE:
 
