@@ -1,5 +1,5 @@
 client.native: .FORCE
-	ocamlbuild -use-ocamlfind src/client.native
+	ocamlbuild examples/client.native
 
 .FORCE:
 
