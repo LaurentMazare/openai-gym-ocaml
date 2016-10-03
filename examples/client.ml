@@ -8,9 +8,16 @@ let run ~host ~port =
   >>=? fun obs ->
   List.iter obs ~f:(fun obs ->
     printf "%f\n%!" obs);
-  Cartpole_v0.step t ~action:1
-  >>|? fun step_result ->
-  printf "%s\n%!" (Query.Step_result.sexp_of_t step_result |> Sexp.to_string)
+  let rec loop n =
+    if n = 0
+    then return (Ok ())
+    else
+      Cartpole_v0.step t ~action:1
+      >>=? fun step_result ->
+      printf "%s\n%!" (Query.Step_result.sexp_of_t step_result |> Sexp.to_string);
+      loop (n-1)
+  in
+  loop 10
 
 let () =
   Command.async
