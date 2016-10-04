@@ -84,6 +84,7 @@ let step t instance_id ~action =
       (`Assoc
         [ "instance_id", `String instance_id
         ; "action", action
+        ; "render", `Bool false
         ])
   in
   let headers = Cohttp.Header.init_with "Content-type" "application/json" in
