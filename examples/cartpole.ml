@@ -4,20 +4,17 @@ open Async.Std
 let run ~host ~port =
   Cartpole_v0.create ~host ~port
   >>=? fun t ->
-  Cartpole_v0.reset t
-  >>=? fun obs ->
-  List.iter obs ~f:(fun obs ->
-    printf "%f\n%!" obs);
-  let rec loop n =
-    if n = 0
-    then return (Ok ())
-    else
-      Cartpole_v0.step t ~action:1
-      >>=? fun step_result ->
-      printf "%s\n%!" (Query.Step_result.sexp_of_t step_result |> Sexp.to_string);
-      loop (n-1)
-  in
-  loop 10
+  Cartpole_v0.run t 5
+    ~init:()
+    ~reset_f:(fun () ~idx:_ ~obs:_ ->
+      0, Cartpole_v0.Arg.A1)
+    ~step_f:(fun cnt ~obs ~reward ->
+      printf "Obs: %s Reward: %f\n%!"
+        ([%sexp_of: float list] obs |> Sexp.to_string)
+        reward;
+      cnt+1, Cartpole_v0.Arg.A1)
+    ~done_f:(fun cnt ->
+      printf "Session lasted for %d steps.\n%!" cnt)
 
 let () =
   Command.async

@@ -1,7 +1,9 @@
-module T = Environment.Make(struct
+module Arg = struct
   let env_id = Env_id.Cartpole_v0
-  type action = int
-  let action_to_json int = `Int int
-end)
+  type action = A0 | A1
+  let action_to_json = function
+    | A0 -> `Int 0
+    | A1 -> `Int 1
+end
 
-include T
+include Environment.Make(Arg)
