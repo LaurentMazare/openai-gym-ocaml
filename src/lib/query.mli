@@ -1,6 +1,11 @@
 open Core.Std
 open Async.Std
 
+module Float_tensor : sig
+  type t = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t
+  val to_list_exn : t -> float list
+end
+
 type t
 
 val create
@@ -20,11 +25,11 @@ val new_env
 val reset
   :  t
   -> Instance_id.t
-  -> float list Or_error.t Deferred.t
+  -> Float_tensor.t Or_error.t Deferred.t
 
 module Step_result : sig
   type t =
-    { observation : float list
+    { observation : Float_tensor.t
     ; reward : float
     ; is_done : bool
     } [@@deriving sexp]

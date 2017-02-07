@@ -1,6 +1,16 @@
 open Core.Std
 open Async.Std
 
+module Float_tensor = struct
+  type t = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t
+
+  let to_list_exn t =
+    match Bigarray.Genarray.dims t with
+    | [| length |] -> List.init length ~f:(fun i -> Bigarray.Genarray.get t [| i |])
+    | [||] -> failwith "empty dimensions"
+    | otherwise -> failwithf "Unexpected tensor dimension %d" (Array.length otherwise) ()
+end
+
 type t =
   { host : string
   ; port : int
@@ -66,11 +76,11 @@ let reset t instance_id =
   let open Or_error.Monad_infix in
   Json.of_string body
   >>= Json.find_assoc ~key:"observation"
-  >>= Json.extract_list ~f:Json.extract_float
+  >>= Json.extract_float_tensor
 
 module Step_result = struct
   type t =
-    { observation : float list
+    { observation : Float_tensor.t sexp_opaque
     ; reward : float
     ; is_done : bool
     } [@@deriving sexp]
@@ -98,7 +108,7 @@ let step t instance_id ~action =
   Json.of_string body
   >>= fun json ->
   Json.find_assoc json ~key:"observation"
-  >>= Json.extract_list ~f:Json.extract_float
+  >>= Json.extract_float_tensor
   >>= fun observation ->
   Json.find_assoc json ~key:"reward"
   >>= Json.extract_float

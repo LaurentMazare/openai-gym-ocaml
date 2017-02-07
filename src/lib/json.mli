@@ -10,6 +10,10 @@ val extract_list
   -> f:(t -> 'a Or_error.t)
   -> 'a list Or_error.t
 
+val extract_float_tensor
+  :  t
+  -> (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t Or_error.t
+
 val extract_string : t -> string Or_error.t
 
 val extract_float : t -> float Or_error.t

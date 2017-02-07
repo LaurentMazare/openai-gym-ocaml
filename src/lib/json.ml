@@ -44,3 +44,24 @@ let extract_list json ~f =
     List.map l ~f
     |> Or_error.combine_errors
   | otherwise -> Or_error.errorf "Expected list, got %s" (to_string otherwise)
+
+let extract_float_tensor t =
+  let rec dims = function
+    | `Float _ -> []
+    | `List [] -> failwith "Empty dimension"
+    | `List (l0 :: _ as l) ->
+      List.length l :: dims l0
+    | otherwise -> failwithf "Expected list or float, got %s" (to_string otherwise) ()
+  in
+  Or_error.try_with (fun () ->
+    let dims = dims t |> Array.of_list in
+    let tensor = Bigarray.Genarray.create Bigarray.float64 C_layout dims in
+    let rec walk indexes = function
+      | `Float f ->
+        Bigarray.Genarray.set tensor (List.rev indexes |> Array.of_list) f
+      | `List l ->
+        List.iteri l ~f:(fun index t -> walk (index :: indexes) t)
+      | otherwise -> failwithf "Expected list or float, got %s" (to_string otherwise) ()
+    in
+    walk [] t;
+    tensor)

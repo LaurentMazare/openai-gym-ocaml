@@ -51,6 +51,7 @@ let run ~host ~port =
       in
       (t, model, 0.), Cartpole_v0.Arg.A1)
     ~step_f:(fun (t, model, acc_reward) ~obs ~reward ->
+      let obs = Query.Float_tensor.to_list_exn obs in
       let action = Model.action model ~obs in
       (t, model, acc_reward +. reward), action)
     ~done_f:(fun (t, model, reward) ->

@@ -1,4 +1,4 @@
-true: package(ppx_sexp_conv), package(core), package(async), package(cohttp.async), package(yojson), thread, warn(A-4-29-40-41-42-44-45-48-56-58), warn_error()
+true: package(bigarray), package(ppx_sexp_conv), package(core), package(async), package(cohttp.async), package(yojson), thread, warn(A-4-29-40-41-42-44-45-48-56-58), warn_error()
 <src/lib>: include
 <src/*/*>: for-pack(Openai_gym)
 <examples/*.native>: use_openai_gym
