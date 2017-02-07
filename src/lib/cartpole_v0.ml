@@ -1,5 +1,5 @@
 module Arg = struct
-  let env_id = Env_id.Cartpole_v0
+  let env_id = Env_id.of_string "CartPole-v0"
   type action = A0 | A1
   let action_to_json = function
     | A0 -> `Int 0

@@ -10,7 +10,7 @@ val create
 
 val get_env
   :  t
-  -> (Instance_id.t * Env_id.t Or_error.t) list Or_error.t Deferred.t
+  -> (Instance_id.t * Env_id.t) list Or_error.t Deferred.t
 
 val new_env
   :  t
