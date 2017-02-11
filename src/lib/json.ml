@@ -31,6 +31,7 @@ let extract_string = function
   | otherwise -> Or_error.errorf "Expected string, got %s" (to_string otherwise)
 
 let extract_float = function
+  | `Int i -> Ok (float i)
   | `Float f -> Ok f
   | otherwise -> Or_error.errorf "Expected float, got %s" (to_string otherwise)
 
@@ -47,7 +48,7 @@ let extract_list json ~f =
 
 let extract_float_tensor t =
   let rec dims = function
-    | `Float _ -> []
+    | `Int _ | `Float _ -> []
     | `List [] -> failwith "Empty dimension"
     | `List (l0 :: _ as l) ->
       List.length l :: dims l0
@@ -57,6 +58,8 @@ let extract_float_tensor t =
     let dims = dims t |> Array.of_list in
     let tensor = Bigarray.Genarray.create Bigarray.float64 C_layout dims in
     let rec walk indexes = function
+      | `Int i ->
+        Bigarray.Genarray.set tensor (List.rev indexes |> Array.of_list) (float i)
       | `Float f ->
         Bigarray.Genarray.set tensor (List.rev indexes |> Array.of_list) f
       | `List l ->
